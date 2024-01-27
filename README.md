@@ -1,4 +1,4 @@
-# STM32F0x Protected Firmware Reader with Pi Pico
+# STM32F0x Protected Firmware Reader with ESP32
 
 This is a proof of concept protected firmware extractor which uses a bus race-condition in SWD readouts. For exploiting it you need to avoid "talking too much" with the MCU (like the SWD Probes do) and just get direct to the point. Then it's possible to extract a single 32 bit DWORD from the firmware before the protection mechanism triggers. The proof of concept needs to control both reset and power for the target device, since the read out protection on SWD requires a power-cycle to be reset.
 
@@ -37,11 +37,11 @@ The pinouts are defined at [include/main.h](include/main.h) by default as:
 #define SWCLK_Pin 9
 ```
 
-The pico should be able to completely turn off the device by using the `TARGET_PWR_Pin`, if your target board is just the STM32 or it has few stuff on it, you can just use the `TARGET_PWR_Pin` directly as 3.3V power supply for the board. Keep in mind that the current sink of the pico is very low, but should be enough for the attack. If you're unsure, you can use a relay/mosfet to power on/off the target power supply.
+The ESP32 should be able to completely turn off the device by using the `TARGET_PWR_Pin`, if your target board is just the STM32 or it has few stuff on it, you can just use the `TARGET_PWR_Pin` directly as 3.3V power supply for the board. Keep in mind that the current sink of the ESP32 is very low, but should be enough for the attack. If you're unsure, you can use a relay/mosfet to power on/off the target power supply.
 
-If your STM32 target has different than 32KB flash memory, you should also edit in [main.cpp](src/main.cpp) the parameter `size`.
+If your STM32 target has different than 64KB flash memory, you should also edit in [main.cpp](src/main.cpp) the parameter `size`.
 
-After powering everything up, the pico will repeat the message `Send anything to start...` on the serial port, that means it is ready. Press up any key and it will start dumping the content:
+After powering everything up, the ESP32 will repeat the message `Send anything to start...` on the serial port, that means it is ready. Press up any key and it will start dumping the content:
 
 ```
 Send anything to start...
@@ -59,4 +59,4 @@ You can also use the `dump.py` script to dump to a file.
 
 # Disclaimer
 
-This work is heavily based on Johanes Obermaier paper [Shedding too much Light on a Microcontroller's Firmware Protection](https://www.aisec.fraunhofer.de/en/FirmwareProtection.html). I also used portions of its Proof of Concept to migrate this to a Raspberry Pi Pico and Platform.IO so I released in the same license as  the original PoC: MIT.
+This work is adapted from [stm32f0-pico-dump](https://github.com/racerxdl/stm32f0-pico-dump) which was heavily based on Johanes Obermaier paper [Shedding too much Light on a Microcontroller's Firmware Protection](https://www.aisec.fraunhofer.de/en/FirmwareProtection.html).
