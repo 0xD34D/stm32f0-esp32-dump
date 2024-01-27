@@ -16,7 +16,7 @@ extern "C"
 }
 
 // STM32 target flash memory size in bytes
-uint32_t size = 65296;
+uint32_t size = 65536;
 
 // Usually the STM32F0x starts here.
 // If you're trying to dump another series check the datasheet.
@@ -41,14 +41,22 @@ void setup()
     Serial.println("Starting");
 
     uint32_t flashData = 0;
+    bool valid = false;
+    uint16_t attempts = 0;
     for (uint32_t i = 0; i < size; i += 4)
     {
         flashData = 0;
-        status = extractFlashData(flashAddress + i, &flashData);
-        if (status != swdStatusOk)
+        valid = false;
+        attempts = 0;
+        while (!valid && attempts++ < 200)
         {
-            Serial.printf("Error reading: %d\r\n", status);
-            break;
+            status = extractFlashData(flashAddress + i, &flashData);
+            if (status != swdStatusOk)
+            {
+                Serial.printf("Error reading: %d\r\n", status);
+                break;
+            }
+            valid = flashData != 0x40021000;
         }
         Serial.printf("%08x: %08x\r\n", flashAddress + i, flashData);
     }
