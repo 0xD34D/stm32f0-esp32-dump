@@ -11,14 +11,12 @@
 
 #include <stdint.h>
 
-#include "Arduino.h"
+#include <Arduino.h>
 
-#define BUTTON1_Pin 4
-#define LED1_Pin 25
-#define TARGET_RESET_Pin 27
-#define TARGET_PWR_Pin 26
-#define SWDIO_Pin 14
-#define SWCLK_Pin 15
+#define TARGET_RESET_Pin 6
+#define TARGET_PWR_Pin 7
+#define SWDIO_Pin 8
+#define SWCLK_Pin 9
 
 #define MAX_READ_ATTEMPTS (100u)
 

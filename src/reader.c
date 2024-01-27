@@ -11,7 +11,8 @@
 #include "swd.h"
 
 /* Reads one 32-bit word from read-protection Flash memory. Address must be 32-bit aligned */
-swdStatus_t extractFlashData(uint32_t const address, uint32_t* const data) {
+swdStatus_t extractFlashData(uint32_t const address, uint32_t *const data)
+{
     swdStatus_t dbgStatus;
 
     /* Add some jitter on the moment of attack (may increase attack effectiveness) */
@@ -24,8 +25,8 @@ swdStatus_t extractFlashData(uint32_t const address, uint32_t* const data) {
     uint32_t numReadAttempts = 0u;
 
     /* try up to MAX_READ_TRIES times until we have the data */
-    do {
-        digitalWrite(LED1_Pin, LOW);
+    do
+    {
 
         targetPowerOn();
 
@@ -33,19 +34,23 @@ swdStatus_t extractFlashData(uint32_t const address, uint32_t* const data) {
 
         dbgStatus = swdInit(&idCode);
 
-        if (dbgStatus == swdStatusOk) {
+        if (dbgStatus == swdStatusOk)
+        {
             dbgStatus = swdEnableDebugIF();
         }
 
-        if (dbgStatus == swdStatusOk) {
+        if (dbgStatus == swdStatusOk)
+        {
             dbgStatus = swdSetAP32BitMode(NULL);
         }
 
-        if (dbgStatus == swdStatusOk) {
+        if (dbgStatus == swdStatusOk)
+        {
             dbgStatus = swdSelectAHBAP();
         }
 
-        if (dbgStatus == swdStatusOk) {
+        if (dbgStatus == swdStatusOk)
+        {
             targetRestore();
             delay(delayJitter);
 
@@ -56,14 +61,17 @@ swdStatus_t extractFlashData(uint32_t const address, uint32_t* const data) {
         targetReset();
 
         /* Check whether readout was successful. Only if swdStatusOK is returned, extractedData is valid */
-        if (dbgStatus == swdStatusOk) {
+        if (dbgStatus == swdStatusOk)
+        {
             *data = extractedData;
-            digitalWrite(LED1_Pin, HIGH);
-        } else {
+        }
+        else
+        {
             ++numReadAttempts;
 
             delayJitter += DELAY_JITTER_MS_INCREMENT;
-            if (delayJitter >= DELAY_JITTER_MS_MAX) {
+            if (delayJitter >= DELAY_JITTER_MS_MAX)
+            {
                 delayJitter = DELAY_JITTER_MS_MIN;
             }
         }

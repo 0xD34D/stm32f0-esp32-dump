@@ -12,36 +12,38 @@
 #include "main.h"
 
 #define MWAIT __asm__ __volatile__( \
-    ".syntax unified 		\n"          \
-    "	movs r0, #0x20 		\n"          \
-    "1: 	subs r0, #1 		\n"          \
-    "	bne 1b 			\n"                 \
-    ".syntax divided"               \
+    "	li x28, 0x26 	    \n"         \
+    "loop%=:                \n"     \
+    "addi x28, x28, -1      \n"     \
+    "	bnez x28, loop%=	\n"          \
     :                               \
     :                               \
-    : "cc", "r0")
+    : "x28")
 
 #define N_READ_TURN (3u)
 
-static uint8_t swdParity(uint8_t const* data, uint8_t const len);
-static void swdDatasend(uint8_t const* data, uint8_t const len);
+static uint8_t swdParity(uint8_t const *data, uint8_t const len);
+static void swdDatasend(uint8_t const *data, uint8_t const len);
 static void swdDataIdle(void);
 static void swdDataPP(void);
 static void swdTurnaround(void);
 static void swdReset(void);
-static void swdDataRead(uint8_t* const data, uint8_t const len);
-static void swdBuildHeader(swdAccessDirection_t const adir, swdPortSelect_t const portSel, uint8_t const A32, uint8_t* const header);
-static swdStatus_t swdReadPacket(swdPortSelect_t const portSel, uint8_t const A32, uint32_t* const data);
+static void swdDataRead(uint8_t *const data, uint8_t const len);
+static void swdBuildHeader(swdAccessDirection_t const adir, swdPortSelect_t const portSel, uint8_t const A32, uint8_t *const header);
+static swdStatus_t swdReadPacket(swdPortSelect_t const portSel, uint8_t const A32, uint32_t *const data);
 static swdStatus_t swdWritePacket(swdPortSelect_t const portSel, uint8_t const A32, uint32_t const data);
-static swdStatus_t swdReadAP0(uint32_t* const data);
+static swdStatus_t swdReadAP0(uint32_t *const data);
 
-static uint8_t swdParity(uint8_t const* data, uint8_t const len) {
+static uint8_t swdParity(uint8_t const *data, uint8_t const len)
+{
     uint8_t par = 0u;
     uint8_t cdata = 0u;
     uint8_t i;
 
-    for (i = 0u; i < len; ++i) {
-        if ((i & 0x07u) == 0u) {
+    for (i = 0u; i < len; ++i)
+    {
+        if ((i & 0x07u) == 0u)
+        {
             cdata = *data;
             ++data;
         }
@@ -53,19 +55,25 @@ static uint8_t swdParity(uint8_t const* data, uint8_t const len) {
     return par;
 }
 
-static void swdDatasend(uint8_t const* data, uint8_t const len) {
+static void swdDatasend(uint8_t const *data, uint8_t const len)
+{
     uint8_t cdata = 0u;
     uint8_t i;
 
-    for (i = 0u; i < len; ++i) {
-        if ((i & 0x07u) == 0x00u) {
+    for (i = 0u; i < len; ++i)
+    {
+        if ((i & 0x07u) == 0x00u)
+        {
             cdata = *data;
             ++data;
         }
 
-        if ((cdata & 0x01u) == 0x01u) {
+        if ((cdata & 0x01u) == 0x01u)
+        {
             digitalWrite(SWDIO_Pin, HIGH);
-        } else {
+        }
+        else
+        {
             digitalWrite(SWDIO_Pin, LOW);
         }
         MWAIT;
@@ -78,28 +86,32 @@ static void swdDatasend(uint8_t const* data, uint8_t const len) {
     }
 }
 
-static void swdDataIdle(void) {
+static void swdDataIdle(void)
+{
     digitalWrite(SWDIO_Pin, HIGH);
     MWAIT;
     pinMode(SWDIO_Pin, INPUT);
     MWAIT;
 }
 
-static void swdDataPP(void) {
+static void swdDataPP(void)
+{
     MWAIT;
     digitalWrite(SWDIO_Pin, LOW);
     pinMode(SWDIO_Pin, OUTPUT);
     MWAIT;
 }
 
-static void swdTurnaround(void) {
+static void swdTurnaround(void)
+{
     digitalWrite(SWCLK_Pin, HIGH);
     MWAIT;
     digitalWrite(SWCLK_Pin, LOW);
     MWAIT;
 }
 
-static void swdDataRead(uint8_t* const data, uint8_t const len) {
+static void swdDataRead(uint8_t *const data, uint8_t const len)
+{
     uint8_t i;
     uint8_t cdata = 0u;
 
@@ -107,7 +119,8 @@ static void swdDataRead(uint8_t* const data, uint8_t const len) {
     swdDataIdle();
     MWAIT;
 
-    for (i = 0u; i < len; ++i) {
+    for (i = 0u; i < len; ++i)
+    {
         cdata >>= 1u;
         cdata |= digitalRead(SWDIO_Pin) ? 0x80u : 0x00u;
         data[(((len + 7u) >> 3u) - (i >> 3u)) - 1u] = cdata;
@@ -118,13 +131,15 @@ static void swdDataRead(uint8_t* const data, uint8_t const len) {
         MWAIT;
 
         /* clear buffer after reading 8 bytes */
-        if ((i & 0x07u) == 0x07u) {
+        if ((i & 0x07u) == 0x07u)
+        {
             cdata = 0u;
         }
     }
 }
 
-static void swdReset(void) {
+static void swdReset(void)
+{
     uint8_t i;
 
     MWAIT;
@@ -133,7 +148,8 @@ static void swdReset(void) {
     MWAIT;
 
     /* 50 clk+x */
-    for (i = 0u; i < (50u + 10u); ++i) {
+    for (i = 0u; i < (50u + 10u); ++i)
+    {
         digitalWrite(SWCLK_Pin, HIGH);
         MWAIT;
         digitalWrite(SWCLK_Pin, LOW);
@@ -142,7 +158,8 @@ static void swdReset(void) {
 
     digitalWrite(SWDIO_Pin, LOW);
 
-    for (i = 0u; i < 3u; ++i) {
+    for (i = 0u; i < 3u; ++i)
+    {
         digitalWrite(SWCLK_Pin, HIGH);
         MWAIT;
         digitalWrite(SWCLK_Pin, LOW);
@@ -150,32 +167,36 @@ static void swdReset(void) {
     }
 }
 
-static void swdBuildHeader(swdAccessDirection_t const adir, swdPortSelect_t const portSel, uint8_t const A32, uint8_t* const header) {
-    if (portSel == swdPortSelectAP) {
+static void swdBuildHeader(swdAccessDirection_t const adir, swdPortSelect_t const portSel, uint8_t const A32, uint8_t *const header)
+{
+    if (portSel == swdPortSelectAP)
+    {
         *header |= 0x02u; /* Access AP */
     }
 
-    if (adir == swdAccessDirectionRead) {
+    if (adir == swdAccessDirectionRead)
+    {
         *header |= 0x04u; /* read access */
     }
 
-    switch (A32) {
-        case 0x01u:
-            *header |= 0x08u;
-            break;
+    switch (A32)
+    {
+    case 0x01u:
+        *header |= 0x08u;
+        break;
 
-        case 0x02u:
-            *header |= 0x10u;
-            break;
+    case 0x02u:
+        *header |= 0x10u;
+        break;
 
-        case 0x03u:
-            *header |= 0x18u;
-            break;
+    case 0x03u:
+        *header |= 0x18u;
+        break;
 
-        default:
-        case 0x00u:
+    default:
+    case 0x00u:
 
-            break;
+        break;
     }
 
     *header |= swdParity(header, 7u) << 5u;
@@ -183,7 +204,8 @@ static void swdBuildHeader(swdAccessDirection_t const adir, swdPortSelect_t cons
     *header |= 0x80u;
 }
 
-static swdStatus_t swdReadPacket(swdPortSelect_t const portSel, uint8_t const A32, uint32_t* const data) {
+static swdStatus_t swdReadPacket(swdPortSelect_t const portSel, uint8_t const A32, uint32_t *const data)
+{
     swdStatus_t ret;
     uint8_t header = 0x00u;
     uint8_t rp[1] = {0x00u};
@@ -201,7 +223,8 @@ static swdStatus_t swdReadPacket(swdPortSelect_t const portSel, uint8_t const A3
 
     swdDataPP();
 
-    for (i = 0u; i < N_READ_TURN; ++i) {
+    for (i = 0u; i < N_READ_TURN; ++i)
+    {
         swdTurnaround();
     }
 
@@ -212,7 +235,8 @@ static swdStatus_t swdReadPacket(swdPortSelect_t const portSel, uint8_t const A3
     return ret;
 }
 
-static swdStatus_t swdWritePacket(swdPortSelect_t const portSel, uint8_t const A32, uint32_t const data) {
+static swdStatus_t swdWritePacket(swdPortSelect_t const portSel, uint8_t const A32, uint32_t const data)
+{
     swdStatus_t ret;
     uint8_t header = 0x00u;
     uint8_t rp[1] = {0x00u};
@@ -246,7 +270,8 @@ static swdStatus_t swdWritePacket(swdPortSelect_t const portSel, uint8_t const A
 
     swdDataPP();
 
-    for (i = 0u; i < 20u; ++i) {
+    for (i = 0u; i < 20u; ++i)
+    {
         swdTurnaround();
     }
 
@@ -255,7 +280,8 @@ static swdStatus_t swdWritePacket(swdPortSelect_t const portSel, uint8_t const A
     return ret;
 }
 
-swdStatus_t swdReadIdcode(uint32_t* const idCode) {
+swdStatus_t swdReadIdcode(uint32_t *const idCode)
+{
     uint32_t ret;
 
     ret = swdReadPacket(swdPortSelectDP, 0x00u, idCode);
@@ -263,7 +289,8 @@ swdStatus_t swdReadIdcode(uint32_t* const idCode) {
     return ret;
 }
 
-swdStatus_t swdSelectAPnBank(uint8_t const ap, uint8_t const bank) {
+swdStatus_t swdSelectAPnBank(uint8_t const ap, uint8_t const bank)
+{
     swdStatus_t ret = swdStatusNone;
     uint32_t data = 0x00000000u;
 
@@ -276,7 +303,8 @@ swdStatus_t swdSelectAPnBank(uint8_t const ap, uint8_t const bank) {
     return ret;
 }
 
-static swdStatus_t swdReadAP0(uint32_t* const data) {
+static swdStatus_t swdReadAP0(uint32_t *const data)
+{
     swdStatus_t ret = swdStatusNone;
 
     swdReadPacket(swdPortSelectAP, 0x00u, data);
@@ -284,7 +312,8 @@ static swdStatus_t swdReadAP0(uint32_t* const data) {
     return ret;
 }
 
-swdStatus_t swdSetAP32BitMode(uint32_t* const data) {
+swdStatus_t swdSetAP32BitMode(uint32_t *const data)
+{
     swdStatus_t ret = swdStatusNone;
 
     swdSelectAPnBank(0x00u, 0x00u);
@@ -303,20 +332,23 @@ swdStatus_t swdSetAP32BitMode(uint32_t* const data) {
     ret |= swdReadAP0(&d);
     ret |= swdReadPacket(swdPortSelectDP, 0x03u, &d);
 
-    if (data != NULL) {
+    if (data != NULL)
+    {
         *data = d;
     }
 
     return ret;
 }
 
-swdStatus_t swdSelectAHBAP(void) {
+swdStatus_t swdSelectAHBAP(void)
+{
     swdStatus_t ret = swdSelectAPnBank(0x00u, 0x00u);
 
     return ret;
 }
 
-swdStatus_t swdReadAHBAddr(uint32_t const addr, uint32_t* const data) {
+swdStatus_t swdReadAHBAddr(uint32_t const addr, uint32_t *const data)
+{
     swdStatus_t ret = swdStatusNone;
     uint32_t d = 0u;
 
@@ -330,7 +362,8 @@ swdStatus_t swdReadAHBAddr(uint32_t const addr, uint32_t* const data) {
     return ret;
 }
 
-swdStatus_t swdEnableDebugIF(void) {
+swdStatus_t swdEnableDebugIF(void)
+{
     swdStatus_t ret = swdStatusNone;
 
     ret |= swdWritePacket(swdPortSelectDP, 0x01u, 0x50000000u);
@@ -338,7 +371,8 @@ swdStatus_t swdEnableDebugIF(void) {
     return ret;
 }
 
-swdStatus_t swdInit(uint32_t* const idcode) {
+swdStatus_t swdInit(uint32_t *const idcode)
+{
     swdStatus_t ret = swdStatusNone;
 
     swdReset();

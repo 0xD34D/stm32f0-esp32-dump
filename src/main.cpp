@@ -9,19 +9,21 @@
 
 #include <Arduino.h>
 
-extern "C" {
-    #include "main.h"
-    #include "reader.h"
+extern "C"
+{
+#include "main.h"
+#include "reader.h"
 }
 
 // STM32 target flash memory size in bytes
-uint32_t size = 32768;
+uint32_t size = 65296;
 
 // Usually the STM32F0x starts here.
 // If you're trying to dump another series check the datasheet.
 uint32_t flashAddress = 0x08000000;
 
-void setup() {
+void setup()
+{
     swdStatus_t status;
     Serial.begin(115200);
 
@@ -31,18 +33,20 @@ void setup() {
     pinMode(SWCLK_Pin, OUTPUT);
 
     targetInit();
-    digitalWrite(LED1_Pin, HIGH);
-    while(!Serial.available()) {
+    while (!Serial.available())
+    {
         delay(1000);
         Serial.println("Send anything to start...");
     }
     Serial.println("Starting");
 
     uint32_t flashData = 0;
-    for (uint32_t i = 0; i < size; i+=4) {
+    for (uint32_t i = 0; i < size; i += 4)
+    {
         flashData = 0;
         status = extractFlashData(flashAddress + i, &flashData);
-        if (status != swdStatusOk) {
+        if (status != swdStatusOk)
+        {
             Serial.printf("Error reading: %d\r\n", status);
             break;
         }
@@ -51,6 +55,6 @@ void setup() {
     Serial.println("DONE");
 }
 
-void loop() {
-
+void loop()
+{
 }
